@@ -1,0 +1,48 @@
+use scraper::{Html, Selector};
+use std::env;
+use std::process;
+
+fn main() -> Result<(), ureq::Error> {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        println!("USAGE: feedme [URL]");
+        process::exit(1);
+    }
+
+    let url = &args[1];
+    let body: String = ureq::get(url).call()?.into_string()?;
+
+    if let Some(feed_path) = find_feed_path(&body) {
+        let feed_url = if feed_path.starts_with("/") {
+            let mut s = String::new();
+            if s.ends_with("/") {
+                s.push_str(&url[..url.len() - 2]);
+            } else {
+                s.push_str(url);
+            }
+            s.push_str(&feed_path[1..]);
+            s
+        } else {
+            feed_path
+        };
+        println!("{}", feed_url);
+    }
+
+    Ok(())
+}
+
+fn find_feed_path(page_body: &str) -> Option<String> {
+    let doc = Html::parse_document(page_body);
+    let feed_mime_types: [&str; 2] = ["rss+xml", "atom+xml"];
+    for mime_type in feed_mime_types.iter() {
+        let selector_text = format!(
+            "link[rel=\"alternate\"][type=\"application/{}\"]",
+            mime_type
+        );
+        let selector = Selector::parse(&selector_text).unwrap();
+        for elem in doc.select(&selector) {
+            return Some(elem.attr("href").unwrap().to_string());
+        }
+    }
+    None
+}
