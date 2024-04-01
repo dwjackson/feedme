@@ -25,10 +25,9 @@ fn find_feed_url(base_url: &str, body: &str) -> Option<String> {
     let feed_path = feed_path.unwrap();
     let feed_url = if feed_path.starts_with("/") {
         let mut s = String::new();
-        if s.ends_with("/") {
-            s.push_str(&base_url[..base_url.len() - 2]);
-        } else {
-            s.push_str(base_url);
+        s.push_str(base_url);
+        if !s.ends_with("/") {
+            s.push('/');
         }
         s.push_str(&feed_path[1..]);
         s
@@ -79,6 +78,16 @@ mod tests {
     fn test_find_feed_url_with_relative_rss_url_with_trailing_base_url_slash() {
         let body = "<html><body><link rel=\"alternate\" type=\"application/rss+xml\" href=\"/feed.xml\"></body></html>";
         let opt = find_feed_url("http://example.com/", body);
+        match opt {
+            Some(url) => assert_eq!(url, "http://example.com/feed.xml"),
+            None => panic!("No URL found"),
+        }
+    }
+
+    #[test]
+    fn test_find_feed_url_with_relative_rss_url_without_trailing_base_url_slash() {
+        let body = "<html><body><link rel=\"alternate\" type=\"application/rss+xml\" href=\"/feed.xml\"></body></html>";
+        let opt = find_feed_url("http://example.com", body);
         match opt {
             Some(url) => assert_eq!(url, "http://example.com/feed.xml"),
             None => panic!("No URL found"),
