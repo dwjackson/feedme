@@ -24,8 +24,7 @@ fn find_feed_url(base_url: &str, body: &str) -> Option<String> {
     }
     let feed_path = feed_path.unwrap();
     let feed_url = if feed_path.starts_with("/") {
-        let mut s = String::new();
-        s.push_str(base_url);
+        let mut s = base_url.to_string();
         if !s.ends_with("/") {
             s.push('/');
         }
