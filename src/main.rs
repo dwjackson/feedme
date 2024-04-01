@@ -11,24 +11,31 @@ fn main() -> Result<(), ureq::Error> {
 
     let url = &args[1];
     let body: String = ureq::get(url).call()?.into_string()?;
-
-    if let Some(feed_path) = find_feed_path(&body) {
-        let feed_url = if feed_path.starts_with("/") {
-            let mut s = String::new();
-            if s.ends_with("/") {
-                s.push_str(&url[..url.len() - 2]);
-            } else {
-                s.push_str(url);
-            }
-            s.push_str(&feed_path[1..]);
-            s
-        } else {
-            feed_path
-        };
+    if let Some(feed_url) = find_feed_url(url, &body) {
         println!("{}", feed_url);
     }
-
     Ok(())
+}
+
+fn find_feed_url(base_url: &str, body: &str) -> Option<String> {
+    let feed_path = find_feed_path(body);
+    if feed_path.is_none() {
+        return None;
+    }
+    let feed_path = feed_path.unwrap();
+    let feed_url = if feed_path.starts_with("/") {
+        let mut s = String::new();
+        if s.ends_with("/") {
+            s.push_str(&base_url[..base_url.len() - 2]);
+        } else {
+            s.push_str(base_url);
+        }
+        s.push_str(&feed_path[1..]);
+        s
+    } else {
+        feed_path
+    };
+    Some(feed_url.to_string())
 }
 
 fn find_feed_path(page_body: &str) -> Option<String> {
@@ -66,5 +73,15 @@ mod tests {
         let body = "<html><body></body></html>";
         let opt = find_feed_path(body);
         assert!(opt.is_none());
+    }
+
+    #[test]
+    fn test_find_feed_url_with_relative_rss_url_with_trailing_base_url_slash() {
+        let body = "<html><body><link rel=\"alternate\" type=\"application/rss+xml\" href=\"/feed.xml\"></body></html>";
+        let opt = find_feed_url("http://example.com/", body);
+        match opt {
+            Some(url) => assert_eq!(url, "http://example.com/feed.xml"),
+            None => panic!("No URL found"),
+        }
     }
 }
