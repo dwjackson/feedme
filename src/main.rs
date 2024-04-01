@@ -60,4 +60,11 @@ mod tests {
             None => panic!("Wrong feed URL"),
         }
     }
+
+    #[test]
+    fn test_no_feed_path() {
+        let body = "<html><body></body></html>";
+        let opt = find_feed_path(body);
+        assert!(opt.is_none());
+    }
 }
