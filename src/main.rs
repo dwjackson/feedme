@@ -46,3 +46,18 @@ fn find_feed_path(page_body: &str) -> Option<String> {
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_feed_path_for_atom_with_full_url_in_href() {
+        let body = "<html><body><link rel=\"alternate\" type=\"application/atom+xml\" href=\"http://example.com/feed.xml\"></body></html>";
+        let opt = find_feed_path(body);
+        match opt {
+            Some(u) => assert_eq!(u, "http://example.com/feed.xml"),
+            None => panic!("Wrong feed URL"),
+        }
+    }
+}
