@@ -13,6 +13,8 @@ fn main() -> Result<(), ureq::Error> {
     let body: String = ureq::get(url).call()?.into_string()?;
     if let Some(feed_url) = find_feed_url(url, &body) {
         println!("{}", feed_url);
+    } else {
+        process::exit(1);
     }
     Ok(())
 }
