@@ -1,6 +1,7 @@
 use scraper::{Html, Selector};
 use std::env;
 use std::process;
+use url::Url;
 
 fn main() -> Result<(), ureq::Error> {
     let args: Vec<String> = env::args().collect();
@@ -20,22 +21,28 @@ fn main() -> Result<(), ureq::Error> {
 }
 
 fn find_feed_url(base_url: &str, body: &str) -> Option<String> {
+    let url = match Url::parse(base_url) {
+        Ok(u) => u,
+        Err(_) => {
+            return None;
+        }
+    };
     let feed_path = find_feed_path(body);
     if feed_path.is_none() {
         return None;
     }
     let feed_path = feed_path.unwrap();
     let feed_url = if feed_path.starts_with("/") {
-        let mut s = base_url.to_string();
-        if !s.ends_with("/") {
-            s.push('/');
-        }
-        s.push_str(&feed_path[1..]);
-        s
+        format!(
+            "{}://{}/{}",
+            url.scheme(),
+            url.host_str().unwrap(),
+            &feed_path[1..]
+        )
     } else {
         feed_path
     };
-    Some(feed_url.to_string())
+    Some(feed_url)
 }
 
 fn find_feed_path(page_body: &str) -> Option<String> {
@@ -92,6 +99,17 @@ mod tests {
         match opt {
             Some(url) => assert_eq!(url, "http://example.com/feed.xml"),
             None => panic!("No URL found"),
+        }
+    }
+
+    #[test]
+    fn test_find_feed_when_feed_is_not_subpath_of_url() {
+        let url = "http://example.com/?page=blog.php";
+        let body = "<html><body><link rel=\"alternate\" type=\"application/atom+xml\" href=\"/feed.xml\"></body></html>";
+        let opt = find_feed_url(url, body);
+        match opt {
+            Some(u) => assert_eq!(u, "http://example.com/feed.xml"),
+            None => panic!("Wrong feed URL"),
         }
     }
 }
