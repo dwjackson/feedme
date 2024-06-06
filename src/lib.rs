@@ -8,20 +8,15 @@ pub fn find_feed_url(base_url: &str, body: &str) -> Option<String> {
             return None;
         }
     };
-    let feed_path = find_feed_path(body);
-    if feed_path.is_none() {
-        return None;
-    }
-    let feed_path = feed_path.unwrap();
-    let feed_url = if feed_path.starts_with("/") {
-        format!(
+    let feed_path = find_feed_path(body)?;
+    let feed_url = match feed_path.strip_prefix('/') {
+        Some(stripped_feed_path) => format!(
             "{}://{}/{}",
             url.scheme(),
             url.host_str().unwrap(),
-            &feed_path[1..]
-        )
-    } else {
-        feed_path
+            stripped_feed_path
+        ),
+        None => feed_path,
     };
     Some(feed_url)
 }
@@ -35,7 +30,7 @@ fn find_feed_path(page_body: &str) -> Option<String> {
             mime_type
         );
         let selector = Selector::parse(&selector_text).unwrap();
-        for elem in doc.select(&selector) {
+        if let Some(elem) = doc.select(&selector).next() {
             return Some(elem.attr("href").unwrap().to_string());
         }
     }
