@@ -10,15 +10,20 @@ pub fn find_feed_url(base_url: &str, body: &str) -> Option<String> {
     };
     let feed_path = find_feed_path(body)?;
     let feed_url = match feed_path.strip_prefix('/') {
-        Some(stripped_feed_path) => format!(
-            "{}://{}/{}",
-            url.scheme(),
-            url.host_str().unwrap(),
-            stripped_feed_path
-        ),
-        None => feed_path,
+        Some(stripped_feed_path) => url_append_path(url, stripped_feed_path),
+        None => {
+            if feed_path.starts_with("http") {
+                feed_path
+            } else {
+                url_append_path(url, &feed_path)
+            }
+        }
     };
     Some(feed_url)
+}
+
+fn url_append_path(url: Url, path: &str) -> String {
+    format!("{}://{}/{}", url.scheme(), url.host_str().unwrap(), path)
 }
 
 fn find_feed_path(page_body: &str) -> Option<String> {
@@ -85,6 +90,17 @@ mod tests {
         let opt = find_feed_url(url, body);
         match opt {
             Some(u) => assert_eq!(u, "http://example.com/feed.xml"),
+            None => panic!("Wrong feed URL"),
+        }
+    }
+
+    #[test]
+    fn test_find_feed_when_feed_has_no_slash() {
+        let url = "http://example.com";
+        let body = "<html><body><link rel=\"alternate\" type=\"application/atom+xml\" href=\"atom\"></body></html>";
+        let opt = find_feed_url(url, body);
+        match opt {
+            Some(u) => assert_eq!(u, "http://example.com/atom"),
             None => panic!("Wrong feed URL"),
         }
     }
