@@ -8,5 +8,5 @@ license = "MIT"
 
 [dependencies]
 ureq = "2.9"
-scraper = "0.19"
+scraper = "0.22"
 url = "2.5"
