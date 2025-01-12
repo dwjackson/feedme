@@ -39,6 +39,19 @@ fn find_feed_path(page_body: &str) -> Option<String> {
             return Some(elem.attr("href").unwrap().to_string());
         }
     }
+
+    /* If there is no proper "alternate" link, look for anchor tags with known
+     * RSS feed classes.
+     */
+    let rss_anchor_classes = ["p-footer-rssLink"];
+    for anchor_class in rss_anchor_classes.iter() {
+        let selector_text = format!("a[class=\"{}\"]", anchor_class);
+        let selector = Selector::parse(&selector_text).unwrap();
+        if let Some(elem) = doc.select(&selector).next() {
+            return Some(elem.attr("href").unwrap().to_string());
+        }
+    }
+
     None
 }
 
@@ -101,6 +114,17 @@ mod tests {
         let opt = find_feed_url(url, body);
         match opt {
             Some(u) => assert_eq!(u, "http://example.com/atom"),
+            None => panic!("Wrong feed URL"),
+        }
+    }
+
+    #[test]
+    fn test_find_feed_when_rss_feed_is_in_forum_footer() {
+        let url = "http://example.com";
+        let body = "<html><body><a href=\"/index.php?forums/-/index.rss\" class=\"p-footer-rssLink\">RSS</a></body></html>";
+        let opt = find_feed_url(url, body);
+        match opt {
+            Some(u) => assert_eq!(u, "http://example.com/index.php?forums/-/index.rss"),
             None => panic!("Wrong feed URL"),
         }
     }
