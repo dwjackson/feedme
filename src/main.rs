@@ -11,7 +11,10 @@ fn main() {
 
     let url = &args[1];
     let body = match ureq::get(url).call() {
-        Ok(x) => x.into_string().unwrap(),
+        Ok(mut x) => match x.body_mut().read_to_string() {
+            Ok(s) => s,
+            Err(_) => process::exit(1),
+        },
         Err(_) => process::exit(1),
     };
     if let Some(feed_url) = find_feed_url(url, &body) {
